@@ -1,5 +1,5 @@
 -- explore actor_films
-select * from actor_films
+select * from actor_films order by rating desc
 
 -- 1. DDL (Data Definition Language) for actors table: Create a DDL for an actors table with the following fields:
 --       films: An array of struct with the following fields:
@@ -28,14 +28,14 @@ rating REAL
 CREATE TYPE quality_class AS ENUM ('star','good','average','bad')
 -- create table actors structure
 CREATE TABLE actors(
-yearly_films_index INTEGER,
 actorid TEXT,
 actor  TEXT,
-is_active  BOOLEAN,
+active_since INTEGER,
+year INTEGER,
 movies films[],
+is_active  BOOLEAN,
 quality_class quality_class,
-current_year INTEGER,
-PRIMARY KEY (yearly_films_index, actorid, current_year) -- an actor can be present in several movies in a year so uniquness comes from this combined PK
+PRIMARY KEY (actorid, year) -- an actor can be present in several movies in a year so cumulate past movies with current year's movie and PK rows to current year with actorid
 );
 -- test things
 SELECT * FROM actors -- BINGO!
@@ -45,42 +45,38 @@ SELECT * FROM actors -- BINGO!
 SELECT MIN(year) FROM actor_films; -- YAY !! its 1970 we will start populating from 1969 then ! lets go for CTE (Common Tables Expressions) and build temporarily on it till we get result to populate actors' table
 SELECT MAX(year) FROM actor_films; 
 
-INSERT INTO actors
-WITH RECURSIVE years AS (
-   SELECT generate_series(1969, 2021) AS year
-   ),
- last_year AS (
-   SELECT * FROM actors 
-   WHERE current_year = 1969
+insert into actors
+with years as (
+  select * from generate_series(1969,2021) AS year
 ), 
-this_years_data AS(
-   SELECT 
-   ROW_NUMBER() OVER (PARTITION BY actorid, year ORDER BY film) AS yearly_films_index, *
-   FROM actor_films
-   WHERE year IN (SELECT year FROM years)
-)
-SELECT 
-      ty.yearly_films_index,
-	  COALESCE(ly.actorid, ty.actorid) AS actorid,
-	  COALESCE(ly.actor, ty.actor) AS actor,
-	  CASE
-	     WHEN ty.filmid IS NOT NULL THEN TRUE 
-		 ELSE FALSE
-	  END AS is_active,
-	  CASE 
-	    WHEN ly.movies IS NULL THEN ARRAY[ROW(ty.filmid::TEXT, ty.film::TEXT, ty.votes::INTEGER, ty.rating::REAL)::films] 
-		WHEN ly.movies IS NOT NULL THEN ly.movies || ARRAY[ROW(ty.filmid::TEXT, ty.film::TEXT, ty.votes::INTEGER, ty.rating::REAL)::films] 
-		ELSE ly.movies 
-	  END AS movies,
-	  CASE 
-	   WHEN rating > 8 THEN 'star'
-	   WHEN rating <= 8 AND rating > 7 THEN 'good'
-	   WHEN rating <= 7 AND rating > 6 THEN 'average'
-	   ELSE 'bad'
-	  END :: quality_class AS Quality_Class,
-	  ty.year AS current_year
-FROM last_year ly FULL OUTER JOIN  this_years_data ty
-                  ON    ly.actorid = ty.actorid
+actor_startings as (
+  select 
+        actorid,
+		actor,
+		min(year) as active_since 
+  from actor_films 
+  group by actorid, actor
+), actors_seasons as(
+select *        
+from actor_startings
+join years  on years.year >= actor_startings.active_since
+order by actorid)
+--END OF CTEs
+select distinct ase.actorid, ase.actor, ase.active_since, ase.year,
+       array_remove(array_agg(case when af.actor is not null then
+	                               row(af.filmid, af.film,af.votes,af.rating)::films end)
+								   over (partition by ase.actorid order by coalesce(ase.year,af.year)), 
+							   null
+	                ) as movies,
+	   case when af.actor is null then false else true end as is_active,
+	    CASE 
+	        WHEN avg(af.rating) OVER (PARTITION BY af.actorid, ase.year) > 8 THEN 'star' 
+	        WHEN avg(af.rating) OVER (PARTITION BY af.actorid, ase.year) > 7 THEN 'good' 
+			WHEN avg(af.rating) OVER (PARTITION BY af.actorid, ase.year) > 6 THEN 'average' 
+			ELSE 'bad' END::quality_class AS Quality_Class
+from actors_seasons ase
+left join actor_films af on
+                         af.actorid = ase.actorid and af.year = ase.year					
 
-SELECT * FROM actors
-ORDER BY actor, current_year desc
+
+select * from actors
