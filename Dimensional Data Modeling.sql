@@ -84,3 +84,57 @@ LEFT JOIN actor_films af
 
 -- Select from actors table
 SELECT * FROM actors;
+
+
+
+--DDL for actors_history_scd table: Create a DDL for an actors_history_scd table with the following features:
+
+-- Implements type 2 dimension modeling (i.e., includes start_date and end_date fields).
+-- Tracks quality_class and is_active status for each actor in the actors table.
+create table actors_history_scd  (
+actorid TEXT,
+actor TEXT,
+is_active boolean,
+quality_class quality_class,
+start_date integer,
+end_date integer
+);
+
+
+
+WITH streaks AS (
+  SELECT 
+      actorid,
+      actor,
+      year AS production_year,
+      quality_class AS previous_class,
+      LAG(quality_class, 1) OVER (PARTITION BY actor, actorid ORDER BY year) AS quality_class,
+      is_active,
+      LAG(is_active, 1) OVER (PARTITION BY actor, actorid ORDER BY year) AS previous_active
+  FROM actors
+), change_indicated AS (
+  SELECT 
+      *,
+      CASE 
+          WHEN previous_class <> quality_class OR is_active <> previous_active 
+          THEN 1
+          ELSE 0
+      END AS changed
+  FROM streaks
+), changed_tracked AS (
+  SELECT 
+      *,
+      SUM(changed) OVER (PARTITION BY actorid, actor ORDER BY production_year) AS change_indicator
+  FROM change_indicated
+),
+dimension_scd as (SELECT
+  actorid,
+  actor,
+  is_active,
+  quality_class,
+  MIN(production_year) AS start_date,
+  MAX(production_year) AS end_date
+FROM changed_tracked
+GROUP BY actorid, actor, is_active, quality_class, change_indicator)
+select *, end_date-start_date+1 as steady_time from dimension_scd
+
