@@ -102,39 +102,40 @@ end_date integer
 
 
 
-WITH streaks AS (
+WITH with_previous AS (
   SELECT 
       actorid,
       actor,
       year AS production_year,
-      quality_class AS previous_class,
-      LAG(quality_class, 1) OVER (PARTITION BY actor, actorid ORDER BY year) AS quality_class,
-      is_active,
-      LAG(is_active, 1) OVER (PARTITION BY actor, actorid ORDER BY year) AS previous_active
+      quality_class,
+	  is_active,
+      LAG(quality_class, 1) OVER (PARTITION BY actor, actorid ORDER BY year) AS previous_class,
+      LAG(is_active, 1) OVER (PARTITION BY actor, actorid ORDER BY year) AS previous_is_active
   FROM actors
-), change_indicated AS (
+), with_indicators AS (
   SELECT 
       *,
       CASE 
-          WHEN previous_class <> quality_class OR is_active <> previous_active 
+          WHEN previous_class <> quality_class OR is_active <> previous_is_active 
           THEN 1
           ELSE 0
       END AS changed
-  FROM streaks
-), changed_tracked AS (
+  FROM with_previous
+), with_streaks AS (
   SELECT 
       *,
-      SUM(changed) OVER (PARTITION BY actorid, actor ORDER BY production_year) AS change_indicator
-  FROM change_indicated
-),
-dimension_scd as (SELECT
+      SUM(changed) OVER (PARTITION BY actorid, actor ORDER BY production_year) AS streak_identifier
+  FROM with_indicators
+)
+SELECT
   actorid,
   actor,
+  streak_identifier,
   is_active,
   quality_class,
   MIN(production_year) AS start_date,
   MAX(production_year) AS end_date
-FROM changed_tracked
-GROUP BY actorid, actor, is_active, quality_class, change_indicator)
-select *, end_date-start_date+1 as steady_time from dimension_scd
+FROM with_streaks
+GROUP BY actorid, actor, is_active, quality_class, streak_identifier
+order by actor, start_date
 
