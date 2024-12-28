@@ -56,41 +56,49 @@ actor_startings AS (
     FROM actor_startings
     JOIN years ON years.year >= actor_startings.active_since
     ORDER BY actorid
+),
+movies_aggregated AS (
+    SELECT 
+        af.actorid,
+        af.year,
+        array_agg(ROW(af.filmid, af.film, af.votes, af.rating)::films) AS movies,
+        AVG(af.rating) AS avg_rating
+    FROM actor_films af
+    GROUP BY af.actorid, af.year
 )
--- END OF CTEs
-SELECT DISTINCT 
+SELECT 
     ase.actorid, 
     ase.actor, 
-    ase.active_since, 
-    ase.year,
-    array_remove(array_agg(
-        CASE WHEN af.actor IS NOT NULL THEN
-            ROW(af.filmid, af.film, af.votes, af.rating)::films 
-        END
-    ) OVER (PARTITION BY ase.actorid ORDER BY COALESCE(ase.year, af.year)), null) AS movies,
+	ase.active_since,
+    ase.year, 
+    COALESCE(ma.movies, ARRAY[]::films[]) AS movies,
     CASE 
-        WHEN af.actor IS NULL THEN false ELSE true 
+        WHEN ma.movies IS NULL THEN false ELSE true 
     END AS is_active,
     CASE 
-        WHEN AVG(af.rating) OVER (PARTITION BY af.actorid, ase.year) > 8 THEN 'star' 
-        WHEN AVG(af.rating) OVER (PARTITION BY af.actorid, ase.year) > 7 THEN 'good' 
-        WHEN AVG(af.rating) OVER (PARTITION BY af.actorid, ase.year) > 6 THEN 'average' 
-        ELSE 'bad' 
+        WHEN ma.avg_rating > 8 THEN 'star' 
+        WHEN ma.avg_rating > 7 THEN 'good' 
+        WHEN ma.avg_rating > 6 THEN 'average' 
+        WHEN ma.avg_rating <= 6 THEN 'bad'
+        ELSE NULL 
     END::quality_class AS quality_class
 FROM actors_seasons ase
-LEFT JOIN actor_films af 
-    ON af.actorid = ase.actorid 
-    AND af.year = ase.year;
+LEFT JOIN movies_aggregated ma 
+    ON ma.actorid = ase.actorid 
+    AND ma.year = ase.year
+ORDER BY ase.actorid, ase.year;
 
 -- Select from actors table
-SELECT * FROM actors;
+SELECT * FROM actors where actor ='Al Pacino';
 
+select * from actor_films where actor ='Al Pacino'
 
 
 --DDL for actors_history_scd table: Create a DDL for an actors_history_scd table with the following features:
 
 -- Implements type 2 dimension modeling (i.e., includes start_date and end_date fields).
 -- Tracks quality_class and is_active status for each actor in the actors table.
+drop table actors_history_scd
 create table actors_history_scd  (
 actorid TEXT,
 actor TEXT,
@@ -100,8 +108,9 @@ start_date integer,
 end_date integer
 );
 
-
-
+-- 4. Backfill query for actors_history_scd: Write a "backfill" query that can populate the entire actors_history_scd table in a single query. 
+ -- entire backfilling till 2020, last year's data is used for incremental data filling
+INSERT INTO actors_history_scd
 WITH with_previous AS (
   SELECT 
       actorid,
@@ -112,6 +121,7 @@ WITH with_previous AS (
       LAG(quality_class, 1) OVER (PARTITION BY actor, actorid ORDER BY year) AS previous_class,
       LAG(is_active, 1) OVER (PARTITION BY actor, actorid ORDER BY year) AS previous_is_active
   FROM actors
+  WHERE year < 2021
 ), with_indicators AS (
   SELECT 
       *,
@@ -130,7 +140,7 @@ WITH with_previous AS (
 SELECT
   actorid,
   actor,
-  streak_identifier,
+  --streak_identifier,
   is_active,
   quality_class,
   MIN(production_year) AS start_date,
@@ -139,3 +149,5 @@ FROM with_streaks
 GROUP BY actorid, actor, is_active, quality_class, streak_identifier
 order by actor, start_date
 
+-- CHECK the entire fill
+select * from actors_history_scd
