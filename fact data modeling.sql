@@ -46,34 +46,8 @@ WHERE table_name = 'devices'; -- device_id,browser_version_patch,device_version_
 -- device_id, user_id from events
 
 -- Option 1: This approach uses a map where the key is the browser_type and the value is an array of dates representing the active days. This structure is compact and efficient for querying a user's activity by browser type.
--- Option 2: This approach uses multiple rows for each user, with each row representing an active day for a specific browser_type. This structure is more normalized and can be easier to work with in some SQL databases that do not support complex data types like maps and arrays.
-
 with with_users as (
- select user_id, device_id, event_time
- from events
-)
-select 
-us.user_id,
-us.device_id,
-us.event_time,
-d.browser_version_patch,
-d.device_version_minor,
-d.device_version_patch,
-d.os_version_minor,
-d.os_version_patch,
-d.browser_version_major,
-browser_version_minor,
-d.browser_type,
-d.device_version_major,
-d.os_type,
-d.os_version_major,
-d.device_type
-from devices d 
-left join with_users us on us.device_id=d.device_id
-
-
-with with_users as (
- select user_id, device_id, event_time
+ select  user_id, device_id, event_time
  from events
 ),
 with_events as (
@@ -83,7 +57,44 @@ us.device_id,
 us.event_time,
 d.browser_type
 from devices d 
-left join with_users us on us.device_id=d.device_id
+right join with_users us on us.device_id=d.device_id
+),
+dates_aggreated as (
+select
+user_id,
+device_id,
+browser_type,
+jsonb_agg(to_char(event_time::timestamp, 'YYYY-MM-DD HH24:MI:SS.US')) AS active_dates
+from with_events
+where browser_type is not null
+GROUP BY user_id, device_id, browser_type
 )
 select 
-  map
+user_id,
+device_id,
+jsonb_object_agg(browser_type, active_dates) AS device_activity_datelist
+from dates_aggreated
+group by user_id, device_id
+
+
+-- Option 2: This approach uses multiple rows for each user, with each row representing an active day for a specific browser_type. This structure is more normalized and can be easier to work with in some SQL databases that do not support complex data types like maps and arrays.
+with with_users as (
+ select  user_id, device_id, event_time
+ from events
+),
+with_events as (
+select 
+us.user_id,
+us.device_id,
+us.event_time,
+d.browser_type
+from devices d 
+right join with_users us on us.device_id=d.device_id
+)
+SELECT distinct
+    user_id, device_id, browser_type,
+	array_agg(row(event_time)) as device_activity_datelist
+from with_events
+group by  user_id, device_id, browser_type
+
+
