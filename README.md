@@ -15,3 +15,7 @@
 6- incremental and one full methods for back filling tables
 
 7- window functions for advanced data processing
+
+8- creating graphs and advanced analytics (DDLs for vertices, edges and their use for analytics): check the memo
+
+## Fact Data Modeling 
