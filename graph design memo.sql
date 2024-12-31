@@ -1,5 +1,7 @@
 drop table vertex_type cascade;
 create type vertex_type as enum('player','team','game');
+drop table edge_type cascade
+create type edge_type as enum('plays_against','shares_team','plays_in','plays_on')
 
 drop table vertices
 create table vertices(
@@ -9,11 +11,8 @@ properties json,
 primary key (identifier, type)
 )
 
-drop table edge_type cascade
+
 drop table edges
-
-create type edge_type as enum('plays_against','shares_team','plays_in','plays_on')
-
 create table edges (
 subject_identifier text,
 subject_type vertex_type,
@@ -29,6 +28,7 @@ object_type,
 edge_type
 ))
 
+-- game vertices
 select 
 game_id as identifier,
 'game'::vertex_type as type,
@@ -39,6 +39,7 @@ json_build_object(
 ) as properties
 from games
 
+-- player vertices
 insert into vertices
 with players_agg as (
 select 
@@ -58,9 +59,7 @@ json_build_object(
 'teams', teams,
 )
 from players_agg
-
-select * from vertices
-
+-- team vertices
 insert into vertices
 with teams_deduped as (
 select *, row_number() over(partition by team_id) as row_num from teams
@@ -82,6 +81,7 @@ select type, count(1)
 from vertices
 group by 1
 
+-- player - game edges
 insert into edges
 with deduped as (
 select *, row_number() over (partition by player_id, game_id) as row_num from game_details
@@ -89,7 +89,7 @@ select *, row_number() over (partition by player_id, game_id) as row_num from ga
 select 
 player_id as subject_identifer,
 'player'::vertex_type as subject_type,
-game_id asobject_identifier,
+game_id as object_identifier,
 'game'::vertex_type as object_type,
 'plays_in'::edge_type as edge_type,
 json_build_object(
@@ -109,6 +109,9 @@ and e.subject_type = v.type
 group by 1
 order by 2 desc
 
+
+
+-- player - team edges 
 insert into edges
 with deduped as (
 select *, row_number() over (partition by player_id, game_id) as row_num from game_details
@@ -150,8 +153,7 @@ json_build_object(
 from aggregated 
 
 
-select * from edges
-
+-- analysis 
 select 
 v.properties ->>'player_name',
 e.object_identifier,
@@ -165,3 +167,9 @@ from vertices v join edges e
 on v.identifier = e.subject_identifier
 and v.type = e.subject_type
 and e.object_type ='player'::vertex_type
+
+
+
+select * from edges
+select * from vertices
+select distinct edge_type from edges
