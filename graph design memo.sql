@@ -109,24 +109,59 @@ and e.subject_type = v.type
 group by 1
 order by 2 desc
 
+insert into edges
 with deduped as (
 select *, row_number() over (partition by player_id, game_id) as row_num from game_details
 ),
 filtered as (
 select * from deduped where row_num =1
-) 
+),
+aggregated as (
 select 
-f1.player_name,
-f2.player_name,
-case when f1.team_abbreviation=f2.team_abbreviation
+f1.player_id as subject_player_id,
+f2.player_id as object_player_id,
+case when f1.team_abbreviation = f2.team_abbreviation
      then 'shares_team'::edge_type  
      else 'plays_against'::edge_type
-end as abb,
+end as edge_type,
+max(f1.player_name) as subject_player_name,
+max(f2.player_name) as object_player_name,
 count(1) as num_games,
-sum(f1.pts) as left_points,
-sum(f2.pts) as right_points,
-f2.team_abbreviation
+sum(f1.pts) as subject_points,
+sum(f2.pts) as object_points
 from filtered f1
 join filtered f2 on 
-f1.game_id = f2.game_id and f1.player_name <> f2.player_name
-group by f1.player_id,f1.player_name, f2.player_id,f2.player_name,abb
+f1.game_id = f2.game_id 
+and f1.player_name <> f2.player_name
+where f1.player_id > f2.player_id
+group by f1.player_id, f2.player_id,edge_type
+)
+select 
+subject_player_id as subject_identifier,
+'player'::vertex_type as subject_type,
+object_player_id as object_identifier,
+'player'::vertex_type as object_type,
+edge_type as edge_type,
+json_build_object(
+'num_games', num_games,
+'subject_points', subject_points,
+'object_points', object_points
+)
+from aggregated 
+
+
+select * from edges
+
+select 
+v.properties ->>'player_name',
+e.object_identifier,
+cast(v.properties->>'number_of_games' as real)/
+case when cast(v.properties->>'total_points' as real) = 0 then 1
+else cast(v.properties->>'total_points' as real) end,
+e.properties->>'subject_points',
+e.properties->>'num_games',
+e.properties->>'subject_points'
+from vertices v join edges e
+on v.identifier = e.subject_identifier
+and v.type = e.subject_type
+and e.object_type ='player'::vertex_type
