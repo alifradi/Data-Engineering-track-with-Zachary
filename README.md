@@ -71,3 +71,6 @@ FINAL GRADE:
 5- incremental data loading for logging activity
 
 
+## Spark fundementals
+
+
