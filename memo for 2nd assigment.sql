@@ -12,41 +12,8 @@ dates_active date[],
 date date,
 primary key(user_id,date)
 )
-select * from users_cumulated
 
 INSERT INTO users_cumulated
-WITH yesterday AS (
-    SELECT * 
-    FROM users_cumulated
-    WHERE date = DATE('2023-01-05')
-), 
-today AS (
-    SELECT 
-        user_id::text AS user_id,
-        DATE(CAST(event_time AS TIMESTAMP)) AS date_active
-    FROM events 
-    WHERE DATE(CAST(event_time AS TIMESTAMP)) = DATE('2023-01-06')
-      AND user_id IS NOT NULL
-    GROUP BY user_id, DATE(CAST(event_time AS TIMESTAMP))
-)
-SELECT 
-    COALESCE(t.user_id, y.user_id) AS user_id,
-    CASE 
-        WHEN t.date_active IS NULL THEN 
-            y.dates_active
-        ELSE 
-            ARRAY_CAT(
-                COALESCE(y.dates_active, ARRAY[]::DATE[]),
-                ARRAY[t.date_active]
-            )
-    END AS dates_active,
-    COALESCE(t.date_active, y.date + INTERVAL '1 day') AS date
-FROM yesterday y
-FULL OUTER JOIN today t 
-ON y.user_id = t.user_id;
-
-
-
 WITH date_range AS (
     -- Generate all dates in January 2023
     SELECT generate_series(
@@ -90,3 +57,7 @@ final_result AS (
         ON c.user_id = u.user_id AND c.date = u.date
 )
 SELECT * FROM final_result;
+
+
+select * from users_cumulated
+order by user_id, date
