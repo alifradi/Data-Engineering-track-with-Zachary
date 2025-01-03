@@ -58,3 +58,16 @@ FINAL GRADE:
 }
 
 ## Fact Data Modeling 
+
+
+1- difference between Fact and dimensions tables
+
+2- when a changing value is considered to belong to dimension or to fact table
+
+3- transforming logging activities to fact table 
+
+4- compacting logging history into binary rows for later easy advanced data analytics 
+
+5- incremental data loading for logging activity
+
+
