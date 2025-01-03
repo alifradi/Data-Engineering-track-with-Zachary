@@ -61,3 +61,38 @@ SELECT * FROM final_result;
 
 select * from users_cumulated
 order by user_id, date
+
+
+
+
+WITH users AS (
+    SELECT * 
+    FROM users_cumulated 
+    WHERE date = DATE('2023-01-31')
+),
+series AS (
+    SELECT 
+        generate_series(DATE('2023-01-01'), DATE('2023-01-31'), INTERVAL '1 day')::DATE AS series_date
+), place_holder_in as(
+SELECT 
+    user_id,
+    date,
+    dates_active,
+    CASE 
+        WHEN dates_active @> ARRAY[series.series_date] THEN 
+            POWER(2, date - series.series_date)::BIGINT
+        ELSE 
+            0
+    END AS place_holder_int -- Casting to bit(32) here
+FROM users
+CROSS JOIN series
+)
+select user_id,
+sum(place_holder_int)::bigint::bit(32) as history_active,
+bit_count(sum(place_holder_int)::bigint::bit(32)) as days_active,
+bit_count('10000000000000000000000000000000'::bit(32)& sum(place_holder_int)::bigint::bit(32) )>0 as weekly_active,
+bit_count('11111110000000000000000000000000'::bit(32)& sum(place_holder_int)::bigint::bit(32) )>0 as weekly_active,
+bit_count(sum(place_holder_int)::bigint::bit(32) )>0 as dayly_active
+from place_holder_in
+group by user_id
+
