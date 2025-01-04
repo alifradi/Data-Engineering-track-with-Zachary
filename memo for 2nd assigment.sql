@@ -92,7 +92,7 @@ sum(place_holder_int)::bigint::bit(32) as history_active,
 bit_count(sum(place_holder_int)::bigint::bit(32)) as days_active,
 bit_count('10000000000000000000000000000000'::bit(32)& sum(place_holder_int)::bigint::bit(32) )>0 as weekly_active,
 bit_count('11111110000000000000000000000000'::bit(32)& sum(place_holder_int)::bigint::bit(32) )>0 as weekly_active,
-bit_count(sum(place_holder_int)::bigint::bit(32) )>0 as dayly_active
+bit_count(sum(place_holder_int)::bigint::bit(32) )>0 as daily_active
 from place_holder_in
 group by user_id
 
