@@ -134,7 +134,7 @@ group by user_id, device_id, browser_type, date
 create table host_activity_datelist(
 host text,
 date date,
-activities_list date[],
+activities_list numeric[],
 primary key (host,date)
 )
 
