@@ -8,7 +8,7 @@ SELECT * FROM game_details -- 492068 rows
 
 SELECT *
 FROM (
-    SELECT *, ROW_NUMBER() OVER (PARTITION BY game_id, team_id) AS row_num
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY game_id, team_id, player_id) AS row_num
     FROM game_details
 ) AS games_deduped
 WHERE row_num = 1; -- 18768 rows 96% less data
