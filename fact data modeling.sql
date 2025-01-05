@@ -166,3 +166,17 @@ SELECT
     ae.event_date AS date,
     ae.hits
 FROM aggregated_events ae;
+
+
+
+--      7.   A monthly, reduced fact table DDL host_activity_reduced
+
+--             month, host,  hit_array - think COUNT(1),  unique_visitors array - think COUNT(DISTINCT user_id)
+--             Create Monthly Reduced Fact Table
+
+CREATE TABLE host_activity_reduced (
+    month DATE NOT NULL,  -- The month of the activity (using first day of the month as a reference)
+    host TEXT NOT NULL,  -- The host with activities
+    hit_count INT NOT NULL,  -- Number of hits (activities) for that month
+    PRIMARY KEY (month, host)
+);
