@@ -36,7 +36,7 @@ SELECT column_name
 FROM INFORMATION_SCHEMA.COLUMNS 
 WHERE table_name = 'devices'; -- device_id,browser_version_patch,device_version_minor,device_version_patch,os_version_minor,os_version_patch,browser_version_major,browser_version_minor,browser_type,device_version_major,os_type,os_version_major, device_type
 
--- A DDL for an user_devices_cumulated table that has:
+--   2. A DDL for an user_devices_cumulated table that has:
 
 --   a device_activity_datelist which tracks a users active days by browser_type
 --   data type here should look similar to MAP<STRING, ARRAY[DATE]>
@@ -53,7 +53,7 @@ CREATE TABLE user_devices_cumulated (
     device_activity_datelist DATE[], -- Aggregated array of active dates
     PRIMARY KEY (user_id, device_id, browser_type, date)
 );
--- A cumulative query to generate device_activity_datelist from events
+--    3. A cumulative query to generate device_activity_datelist from events
 insert into user_devices_cumulated
 with yesterday as (
   select * 
@@ -127,3 +127,13 @@ select user_id, device_id, browser_type, date,
 sum(place_holder_int)::bigint::bit(32) as datelist_int
 from activties_binarized
 group by user_id, device_id, browser_type, date
+
+--      4. A DDL for hosts_cumulated table
+           --a host_activity_datelist which logs to see which dates each host is experiencing any activity
+
+create table host_activity_datelist(
+host text,
+date date,
+activities_list date[],
+primary key (host,date)
+)
