@@ -97,7 +97,7 @@ on
   and y.device_id = t.device_id 
   and y.browser_type = t.browser_type
 
--- A datelist_int generation query. Convert the device_activity_datelist column into a datelist_int column
+--     4.  A datelist_int generation query. Convert the device_activity_datelist column into a datelist_int column
 
 
 with ud_cumulated as (
@@ -128,7 +128,7 @@ sum(place_holder_int)::bigint::bit(32) as datelist_int
 from activties_binarized
 group by user_id, device_id, browser_type, date
 
---      4. A DDL for hosts_cumulated table
+--      5. A DDL for hosts_cumulated table
            --a host_activity_datelist which logs to see which dates each host is experiencing any activity
 
 create table host_activity_datelist(
