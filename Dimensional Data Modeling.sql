@@ -261,3 +261,12 @@ SELECT * FROM new_records
 UNION ALL
 SELECT * FROM unchanged_records
 ORDER BY actor, start_date;
+
+
+
+
+
+
+-- Incremental Query: This is typically executed on a day-to-day basis to load new data into the cumulative table. Incremental queries are efficient because they only process and add the new or modified records since the last load, minimizing the amount of data handled and processed at each step.
+-- Cumulative Query (Backfill): This query is used to backfill the cumulative table. It's typically executed when you need to populate the cumulative table with historical data or reprocess existing data. A cumulative query ensures that the cumulative table reflects all necessary data up to the current date, and is often run less frequently compared to incremental queries.
+-- By combining these two types of queries, you can maintain an up-to-date cumulative table with minimal processing overhead during regular operations while still having the ability to comprehensively backfill historical data when needed.
