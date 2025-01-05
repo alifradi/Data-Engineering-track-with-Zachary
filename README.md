@@ -70,6 +70,44 @@ FINAL GRADE:
 
 5- incremental data loading for logging activity
 
+** This feedback is auto-generated from an LLM **
+
+Hello! Here's my feedback on your submission for the Fact Data Modeling exercise:
+
+De-duplication Query:
+
+You attempted to remove duplicates from game_details using SQL's ROW_NUMBER(). However, both game_id and team_id are considered, but player_id has been omitted, which was part of the requirement.
+The comment suggests comparing data size before and after deduplication, which is helpful for verification.
+User Devices Activity Datelist DDL:
+
+The table schema for user_devices_cumulated is close to what's needed, but there is a slight misalignment with the requirement. The device_activity_datelist should ideally look like a MAP<STRING, ARRAY[DATE]>, which can be better represented with browser types as keys and date arrays as values. Your current schema seems to focus on having DATE[].
+User Devices Activity Datelist Implementation:
+
+Your incremental query approach for populating user_devices_cumulated is organized and uses CTEs effectively.
+The logic of coalescing between yesterday and today to append to device_activity_datelist is a valid approach for aggregation, though the date handling in coalesce might need careful adjustment for proper incrementation as + Interval '1 day' assumes continued daily processing.
+The use of array_append maintains consistency of aggregated dates.
+User Devices Activity Int Datelist:
+
+The transformation of device_activity_datelist into datelist_int is correctly approached with cross joining and summing the results of powers of two, which respects the essence of base-2 transformation.
+It is well-structured, though the final outcome might be overly specific in using bit(32), which potentially limits longer date aggregation if the intention is to cover a more extended timeline.
+Host Activity Datelist DDL:
+
+The schema outline is straightforward and aligns with requirements. Defining a primary key on host and date ensures unique record criteria.
+General Feedback:
+
+Consider refining the deduplication approach to encompass all required identifiers.
+Ensure your schema captures the requirements of a MAP data structure for devices.
+Readability is aided by consistent comments; keep this up.
+Check alignment with data types that cater to broader use cases if required.
+Your submission covered the five necessary queries effectively. While there are some areas for precision and improvement, your logical structuring and understanding of SQL are evident.
+
+FINAL GRADE:
+
+{
+  "letter_grade": "B",
+  "passes": true
+}
+Good work, and with slight adjustments, you'll be even stronger in these exercises. Let me know if there's anything unclear or if you need further feedback on this assignment!
 
 ## Spark fundementals
 
