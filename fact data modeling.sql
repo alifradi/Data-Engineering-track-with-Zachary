@@ -137,3 +137,32 @@ date date,
 activities_list date[],
 primary key (host,date)
 )
+
+
+--      6.   The incremental query to generate host_activity_datelist
+--             Incremental Query: Generate host_activity_datelist for new events
+delete from host_activity_datelist
+INSERT INTO host_activity_datelist
+WITH new_events AS (
+    SELECT 
+        e.host,
+		e.user_id,
+        e.event_time::date AS event_date
+    FROM events e
+    WHERE e.event_time::date > date('2022-12-31')  and e.user_id is not null
+    -- Only select events that are newer than the last date in the host_activity_datelist table
+),
+aggregated_events AS (
+    SELECT
+        host,
+        event_date,
+        ARRAY_AGG(user_id) AS hits -- This groups the event dates for each host
+    FROM new_events
+    GROUP BY host, event_date
+)
+-- Insert new data into host_activity_datelist
+SELECT 
+    ae.host,
+    ae.event_date AS date,
+    ae.hits
+FROM aggregated_events ae;
