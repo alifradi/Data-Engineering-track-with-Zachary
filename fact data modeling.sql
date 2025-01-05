@@ -45,56 +45,54 @@ WHERE table_name = 'devices'; -- device_id,browser_version_patch,device_version_
 -- browser_type from device
 -- device_id, user_id from events
 
--- Option 1: This approach uses a map where the key is the browser_type and the value is an array of dates representing the active days. This structure is compact and efficient for querying a user's activity by browser type.
-with with_users as (
- select  user_id, device_id, event_time
- from events
+CREATE TABLE user_devices_cumulated (
+    user_id NUMERIC NOT NULL,
+    device_id NUMERIC NOT NULL,
+    browser_type TEXT NOT NULL,
+    date DATE NOT NULL, -- Represents the range limit for device activity aggregation
+    device_activity_datelist DATE[], -- Aggregated array of active dates
+    PRIMARY KEY (user_id, device_id, browser_type, date)
+);
+-- A cumulative query to generate device_activity_datelist from events
+insert into user_devices_cumulated
+with yesterday as (
+  select * 
+  from user_devices_cumulated
+  where date = date('2023-01-30') -- Adjust as needed
+),
+with_users as (
+  select user_id, device_id, event_time::date
+  from events
 ),
 with_events as (
-select 
-us.user_id,
-us.device_id,
-us.event_time,
-d.browser_type
-from devices d 
-right join with_users us on us.device_id=d.device_id
-),
-dates_aggreated as (
-select
-user_id,
-device_id,
-browser_type,
-jsonb_agg(to_char(event_time::timestamp, 'YYYY-MM-DD HH24:MI:SS.US')) AS active_dates
-from with_events
-where browser_type is not null
-GROUP BY user_id, device_id, browser_type
+  select distinct
+    us.user_id as user_id,
+    us.device_id as device_id,
+    us.event_time::date as date,
+    d.browser_type as browser_type
+  from devices d 
+  right join with_users us on us.device_id = d.device_id
+  where us.user_id is not null and us.device_id is not null and d.browser_type is not null
+  order by date
+), 
+today as (
+  select *
+  from with_events 
+  where date = date('2023-01-31') -- Adjust as needed
 )
-select 
-user_id,
-device_id,
-jsonb_object_agg(browser_type, active_dates) AS device_activity_datelist
-from dates_aggreated
-group by user_id, device_id
-
-
--- Option 2: This approach uses multiple rows for each user, with each row representing an active day for a specific browser_type. This structure is more normalized and can be easier to work with in some SQL databases that do not support complex data types like maps and arrays.
-with with_users as (
- select  user_id, device_id, event_time
- from events
-),
-with_events as (
-select 
-us.user_id,
-us.device_id,
-us.event_time,
-d.browser_type
-from devices d 
-right join with_users us on us.device_id=d.device_id
-)
-SELECT distinct
-    user_id, device_id, browser_type,
-	array_agg(row(event_time)) as device_activity_datelist
-from with_events
-group by  user_id, device_id, browser_type
-
-
+select  
+  coalesce(t.user_id, y.user_id) as user_id,
+  coalesce(t.device_id, y.device_id) as device_id,
+  coalesce(t.browser_type, y.browser_type) as browser_type,
+  coalesce(t.date, y.date + Interval '1 day')::date as date,
+  case 
+    when y.device_activity_datelist is not null and t.date is not null then array_append(y.device_activity_datelist, t.date)
+    when y.device_activity_datelist is not null then y.device_activity_datelist
+    else array[t.date]
+  end as device_activity_datelist
+from today t
+full outer join yesterday y
+on 
+  y.user_id = t.user_id 
+  and y.device_id = t.device_id 
+  and y.browser_type = t.browser_type
