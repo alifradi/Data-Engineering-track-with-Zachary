@@ -96,3 +96,34 @@ on
   y.user_id = t.user_id 
   and y.device_id = t.device_id 
   and y.browser_type = t.browser_type
+
+-- A datelist_int generation query. Convert the device_activity_datelist column into a datelist_int column
+
+
+with ud_cumulated as (
+select * from user_devices_cumulated
+WHERE date = DATE('2023-01-31')
+),
+series AS (
+    SELECT 
+        generate_series(DATE('2023-01-01'), DATE('2023-01-31'), INTERVAL '1 day')::DATE AS series_date
+), activties_binarized as(
+SELECT 
+    user_id,
+	device_id,
+	browser_type,
+    date,
+    device_activity_datelist,
+    CASE 
+        WHEN device_activity_datelist @> ARRAY[series.series_date] THEN 
+             POWER(2, date - series.series_date)::BIGINT
+        ELSE 
+            0
+    END AS place_holder_int 
+FROM ud_cumulated
+CROSS JOIN series
+)
+select user_id, device_id, browser_type, date,
+sum(place_holder_int)::bigint::bit(32) as datelist_int
+from activties_binarized
+group by user_id, device_id, browser_type, date
