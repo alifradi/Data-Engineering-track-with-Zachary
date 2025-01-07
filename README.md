@@ -113,40 +113,49 @@ Good work, and with slight adjustments, you'll be even stronger in these exercis
 
 ** This feedback is auto-generated from an LLM **
 
-Dear Student,
+Hello,
 
-Thank you for your submission of the PySpark assignment. I have reviewed your code and have the following feedback:
+Thank you for your submission of the Apache Spark Infrastructure homework assignment. I have reviewed your code, and here is my feedback on each component of the task:
 
-Disabling Automatic Broadcast Join:
+Disabling Default Broadcast Joins
 
-You correctly disabled the default broadcast join behavior using spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "-1"). This is in line with the assignment requirement.
-Explicitly Broadcasting Joins:
+You have correctly disabled the automatic broadcast join setting with spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "-1"). Well done.
+Explicitly Broadcast Join
 
-You properly used F.broadcast() to explicitly broadcast the medals and maps tables before joining them. This satisfies query_2. Note that the aliasing used is appropriate and enhances readability.
-Bucket Join Strategy:
+You correctly broadcast the medals and maps tables using F.broadcast, which properly aligns with the task requirements.
+Bucket Joins and Reading Bucketed Tables
 
-The task required using a bucket join strategy. However, your use of repartitionByRange(16, "match_id") does not implement bucket joins. Bucket joins require buckets to be specified during initial table creation or by using the bucketBy method during table writes. Merely repartitioning does not achieve this. Unfortunately, this does not meet the assignment criteria for query_3.
-Aggregation Queries:
+It seems like your match_details, matches, and medals_matches_players tables are read as bucketed. However, it's not entirely clear how these tables were bucketed, as the creation of the bucket is assumed ("Read bucketed tables (assumes they were written with bucketBy match_id)"). It's essential to ensure these tables are bucketed by match_id with 16 buckets during their creation or writing as this affects join performance.
+Aggregations (Queries 4a, 4b, 4c, 4d)
 
-The aggregations for the questions appear almost correct:
-Query 4a: You calculated the average kills per game per player, which seems theoretically correct. However, I would suggest verifying that you aren't computing averages twice unnecessarily (F.avg("kills") then F.avg("avg_kills")). Ensure performance and correctness checks.
-Query 4b, 4c: You did well here by using count() and ordering by descending order which identifies the top records.
-Query 4d: Filtering for "Killing Spree" is correct. Ensure you are filtering by the actual column medal_name.
-Data Size Optimization:
+Query 4a: The calculation for "Which player has the highest average kills per game?" is correctly implemented using groupBy and agg operations to get the average kills.
 
-You've applied sortWithinPartitions on most_played_playlist and most_played_map. While this is a good practice for performance optimization, you need to demonstrate partitioning strategies using fields like playlist or map_name for query_5. Explore using partitioning strategies on these low-cardinality fields instead of solely relying on repartitionByRange.
-Output Display:
+Query 4b: The most played playlist is correctly obtained with a grouped and ordered DataFrame.
 
-Your usage of .show() to display results remains satisfactory for demonstration purposes.
-Overall, your submission demonstrates a solid understanding of broadcasting and aggregation; however, there was a misunderstanding in implementing bucket joins and data partitioning optimizations appropriately. Below is your final grade according to the evaluation rubric.
+Query 4c: You performed the aggregation for the most played map correctly.
 
-FINAL GRADE:
+Query 4d: The query for the map with the most "Killing Spree" medals is correctly filtered and aggregated.
+
+Optimization (Partitioning and Sorting)
+
+You executed the partitioning strategies correctly, including repurposing with low and high cardinality fields and adding comments to clarify your intentions.
+
+Applying sortWithinPartitions to ensure data is optimized for query performance was correctly implemented.
+
+Improvements/Suggestions:
+
+Provide more details on the preparation of your bucketed tables (e.g., code or steps) to ensure correctness in setting up the bucket-based join strategy.
+
+You could also expand on how performance could be monitored to verify the impact of each partitioning and sorting strategy.
+
+Overall, your submission covers all tasks appropriately with a good understanding of Spark operations, joins, aggregations, partitioning, and sorting strategies.
+
+Here is your final grade based on the rubric:
 
 {
-  "letter_grade": "B",
+  "letter_grade": "A",
   "passes": true
 }
-Moving forward, I suggest reviewing the concept of bucket joins and partitioning strategies in Spark for improved performance and correctness. If you have any questions, feel free to reach out for clarification or further resources
 
 
 ## 4-apache-flink-training
