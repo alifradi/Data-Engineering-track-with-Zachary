@@ -147,3 +147,6 @@ FINAL GRADE:
   "passes": true
 }
 Moving forward, I suggest reviewing the concept of bucket joins and partitioning strategies in Spark for improved performance and correctness. If you have any questions, feel free to reach out for clarification or further resources
+
+
+## 4-apache-flink-training
