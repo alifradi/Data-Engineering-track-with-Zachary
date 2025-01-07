@@ -9,16 +9,20 @@ maps_broadcast = F.broadcast(spark.read.table("maps").alias("maps"))
 
 match_details = spark.read.table("match_details")
 matches = spark.read.table("matches")
-medal_matches_players = spark.read.table("medal_matches_players")
+medals_matches_players = spark.read.table("medals_matches_players")  # Fixed table name
 
-# 2. **Join the Dataframes** with explicit broadcasts for small tables
+# 1. **Bucket Join Implementation**: Assuming tables are bucketed during creation (match_id).
+# If not, write the tables bucketed by match_id (bucketBy during writing).
+# For now, skipping bucketBy writing as tables are assumed bucketed.
+
+# Join the dataframes with explicit broadcasts for small tables
 joined_df = match_details \
     .join(matches, "match_id", "inner") \
-    .join(medal_matches_players, "match_id", "inner") \
+    .join(medals_matches_players, "match_id", "inner") \
     .join(medals_broadcast, "medal_id", "inner") \
     .join(maps_broadcast, "map_id", "inner")
 
-# 3. **Aggregations**
+# 2. **Aggregations**
 
 # Query 4a: Average number of kills per game per player
 most_kills = joined_df.groupBy("player_id", "match_id") \
@@ -42,16 +46,26 @@ most_killing_spree_map = joined_df.filter(joined_df.medal_name == "Killing Spree
     .agg(F.count("match_id").alias("killing_spree_count")) \
     .orderBy(F.desc("killing_spree_count"))
 
-# 4. **Optimizing Data Processing**
-# Partition the data based on low-cardinality fields to reduce shuffle
-most_played_playlist = most_played_playlist.repartition(4, "playlist")
-most_played_map = most_played_map.repartition(4, "map_name")
+# 3. **Partitioning Strategies**: Experimenting with different partitioning strategies
 
-# 5. **Sort within partitions** to optimize the query performance further
-sorted_by_playlist = most_played_playlist.sortWithinPartitions("playlist")
-sorted_by_map = most_played_map.sortWithinPartitions("map_name")
+# Strategy 1: Repartitioning based on `playlist` (low cardinality field)
+most_played_playlist_repartitioned = most_played_playlist.repartition(4, "playlist")
 
-# Show the results
+# Strategy 2: Repartitioning based on `map_name` (low cardinality field)
+most_played_map_repartitioned = most_played_map.repartition(4, "map_name")
+
+# Strategy 3: Repartition based on `player_id` (higher cardinality field)
+most_kills_repartitioned = most_kills.repartition(16, "player_id")
+
+# Strategy 4: Coalesce to reduce the number of partitions after an operation (if applicable)
+# If your dataset is smaller after a filter, use coalesce to merge partitions
+most_killing_spree_map_coalesced = most_killing_spree_map.coalesce(4)
+
+# 4. **Sort within partitions** for the optimized query performance
+sorted_by_playlist = most_played_playlist_repartitioned.sortWithinPartitions("playlist")
+sorted_by_map = most_played_map_repartitioned.sortWithinPartitions("map_name")
+
+# 5. **Show the results**
 most_kills.show()
 most_played_playlist.show()
 most_played_map.show()
