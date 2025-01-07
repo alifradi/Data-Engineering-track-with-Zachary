@@ -27,15 +27,24 @@ most_kills = joined_df.groupBy("player_id", "match_id") \
     .groupBy("player_id") \
     .agg(F.avg("avg_kills").alias("avg_kills_per_game"))
 
+# Get the player with the highest average kills
+most_kills_top_player = most_kills.orderBy(F.desc("avg_kills_per_game")).limit(1)
+
 # Query 4b: Most played playlist
 most_played_playlist = joined_df.groupBy("playlist") \
     .agg(F.count("match_id").alias("playlist_count")) \
     .orderBy(F.desc("playlist_count"))
 
+# Get the top playlist
+most_played_playlist_top = most_played_playlist.limit(1)
+
 # Query 4c: Most played map
 most_played_map = joined_df.groupBy("map_name") \
     .agg(F.count("match_id").alias("map_count")) \
     .orderBy(F.desc("map_count"))
+
+# Get the top map
+most_played_map_top = most_played_map.limit(1)
 
 # Query 4d: Most Killing Spree medals by map
 most_killing_spree_map = joined_df.filter(joined_df.medal_name == "Killing Spree") \
@@ -43,28 +52,11 @@ most_killing_spree_map = joined_df.filter(joined_df.medal_name == "Killing Spree
     .agg(F.count("match_id").alias("killing_spree_count")) \
     .orderBy(F.desc("killing_spree_count"))
 
-# 3. **Multiple Partitioning Strategies**
+# Get the top map with the most Killing Spree medals
+most_killing_spree_map_top = most_killing_spree_map.limit(1)
 
-# Strategy 1: Repartitioning based on `playlist` (low cardinality field)
-most_played_playlist_repartitioned = most_played_playlist.repartition(4, "playlist")
-
-# Strategy 2: Repartitioning based on `map_name` (low cardinality field)
-most_played_map_repartitioned = most_played_map.repartition(4, "map_name")
-
-# Strategy 3: Repartition based on `player_id` (high cardinality field)
-most_kills_repartitioned = most_kills.repartition(16, "player_id")
-
-# Strategy 4: Coalesce to reduce the number of partitions after an operation (if applicable)
-most_killing_spree_map_coalesced = most_killing_spree_map.coalesce(4)
-
-# 4. **Sort within partitions** for the optimized query performance
-sorted_by_playlist = most_played_playlist_repartitioned.sortWithinPartitions("playlist")
-sorted_by_map = most_played_map_repartitioned.sortWithinPartitions("map_name")
-
-# 5. **Show the results**
-most_kills.show()
-most_played_playlist.show()
-most_played_map.show()
-most_killing_spree_map.show()
-sorted_by_playlist.show()
-sorted_by_map.show()
+# 3. **Show the results**
+most_kills_top_player.show()
+most_played_playlist_top.show()
+most_played_map_top.show()
+most_killing_spree_map_top.show()
