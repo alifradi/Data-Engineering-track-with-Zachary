@@ -109,7 +109,9 @@ FINAL GRADE:
 }
 Good work, and with slight adjustments, you'll be even stronger in these exercises. Let me know if there's anything unclear or if you need further feedback on this assignment!
 
-## Spark fundementals
+## Spark fundementals and testing
+
+### fundamentals
 
 ** This feedback is auto-generated from an LLM **
 
@@ -157,5 +159,74 @@ Here is your final grade based on the rubric:
   "passes": true
 }
 
+
+
+### Testing
+
+** This feedback is auto-generated from an LLM **
+
+
+
+Hello,
+
+Thank you for submitting your assignment. I have reviewed your submission which involves converting PostgreSQL queries to SparkSQL, implementing PySpark jobs, and creating corresponding tests.
+
+Here's the feedback for your submission:
+
+### Conversion of PostgreSQL Queries to SparkSQL
+
+1. **Device Activity Analysis:**
+   - You successfully converted a PostgreSQL query into a SparkSQL query for analyzing device activity.
+   - The logic for handling user device events, daily activity aggregation, and the final activity summary appears correct.
+   - The usage of CTEs (`WITH` clauses) enhances readability.
+
+2. **Actor Quality Analysis:**
+   - The PostgreSQL-to-SparkSQL conversion for actor quality analysis is well implemented.
+   - You've categorized actors into quality classes based on ratings and checked for active status correctly.
+
+### PySpark Job Implementation
+
+1. **Device Activity Analysis Job:**
+   - The `analyze_device_activity` function is well-structured with appropriate use of DataFrame registration for SparkSQL execution.
+   - The `generate_datelist_int` function correctly integrates binary computation for date list conversion.
+
+2. **Actor Quality Analysis Job:**
+   - The `analyze_actor_quality` function is effectively structured to perform aggregations and classifications based on ratings.
+
+3. **Overall Code Quality:**
+   - Best practices for Spark session management have been mostly followed, with `create_spark_session` encapsulating session creation logic.
+   - The main functions are appropriately configured to allow testing and result showcasing.
+
+### Tests
+
+1. **Test Structure & Data Generation:**
+   - You have used pytest fixtures to create a Spark session and generate sample data, which allows for clean and modular test design.
+   - Test cases cover multiple aspects of the logic such as data structure validation, filtering, aggregation, classification, and ordering.
+
+2. **Coverage & Assertions:**
+   - Device activity tests verify the structure, filtering, aggregations, and ordered output appropriately.
+   - Actor quality tests confirm the integrity of classifications and the correctness of computed averages and flags.
+
+3. **Test Naming & Clarity:**
+   - Test methods are well-named, indicative of the functionality being tested, leading to clear intentions.
+
+Overall, the submission reflects a strong understanding of the task requirements and demonstrates adept application of PySpark for large scale data processing tasks.
+
+### Areas for Improvement
+
+- **Edge Cases:** Consider adding more edge case handling, such as scenarios where expected averages might be on boundary values or when activity lists are empty.
+- **Code Documentation:** Additional inline comments can improve understanding of complex logic, especially around binary conversion logic in the date list generation.
+
+### FINAL GRADE
+```json
+{
+  "letter_grade": "A",
+  "passes": true
+}
+```
+
+Your work demonstrates a high level of proficiency and adherence to the assignment requirements. Keep up the good work! If you have any questions or need further clarification, feel free to reach out.
+
+Best regards.
 
 ## 4-apache-flink-training
