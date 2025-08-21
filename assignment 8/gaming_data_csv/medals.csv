@@ -1,0 +1,11 @@
+medal_id,medal_name,medal_description,points
+1,Killing Spree,5 kills in a row,100
+2,Double Kill,2 kills in quick succession,50
+3,Triple Kill,3 kills in quick succession,75
+4,Quadra Kill,4 kills in quick succession,150
+5,Penta Kill,5 kills in quick succession,300
+6,First Blood,First kill of the match,25
+7,Assist Master,Most assists in match,40
+8,Survivor,Survived longest,60
+9,MVP,Most valuable player,200
+10,Team Player,Best team player,80
